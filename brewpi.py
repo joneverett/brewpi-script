@@ -92,14 +92,12 @@ day = ""
 
 # wwwSettings.json is a copy of some of the settings for the web server
 def changeWwwSetting(settingName, value):
-	wwwSettingsFile = open(config['wwwPath'] + 'wwwSettings.json', 'r+b')
-	wwwSettings = json.load(wwwSettingsFile)
-	wwwSettings[settingName] = value
-	wwwSettingsFile.seek(0)
-	wwwSettingsFile.write(json.dumps(wwwSettings))
-	wwwSettingsFile.truncate()
-	wwwSettingsFile.close()
-
+	with open(config['wwwPath'] + 'wwwSettings.json', 'r+b') as wwwSettingsFile:
+		wwwSettings = json.load(wwwSettingsFile)
+		wwwSettings[settingName] = value
+		wwwSettingsFile.seek(0)
+		wwwSettingsFile.write(json.dumps(wwwSettings))
+		wwwSettingsFile.truncate()
 
 def startBeer(beerName):
 	global config
@@ -224,12 +222,11 @@ s.settimeout(float(config['serialCheckInterval']))
 prevDataTime = 0.0  # keep track of time between new data requests
 prevTimeOut = time.time()
 
-run = 1
 lcdText = "Script starting up"
 
 startBeer(config['beerName'])
 
-while(run):
+while True:
 	# Check wheter it is a new day
 	lastDay = day
 	day = time.strftime("%Y-%m-%d")
@@ -256,13 +253,11 @@ while(run):
 			messageType = message
 
 		if messageType == "stopScript":  # exit instruction received. Stop script.
-			run = 0
 			# voluntary shutdown.
 			# write a file to prevent the cron job from restarting the script
-			dontrunfile = open(config['wwwPath'] + 'do_not_run_brewpi', "w")
-			dontrunfile.write("1")
-			dontrunfile.close()
-			continue
+			with open(config['wwwPath'] + 'do_not_run_brewpi', "w") as dontrunfile:
+				dontrunfile.write("1")	
+			break
 		elif messageType == "ack":  # acknowledge request
 			conn.send('ack')
 		elif messageType == "getMode":  # echo cs['mode'] setting
@@ -453,27 +448,25 @@ while(run):
 
 					dataToAdd = [newRow]
 					dataTable.AppendData(dataToAdd)
-					jsonfile = open(localJsonFileName, 'w')
-					jsonfile.write(unicode(dataTable.ToJSon(columns_order=["Time",
-						"BeerTemp", "BeerSet", "BeerAnn",
-						"FridgeTemp", "FridgeSet", "FridgeAnn"])))
-					jsonfile.close()
-
+					with open(localJsonFileName, 'w') as jsonfile: 
+						jsonfile.write(unicode(dataTable.ToJSon(columns_order=["Time",
+							"BeerTemp", "BeerSet", "BeerAnn",
+							"FridgeTemp", "FridgeSet", "FridgeAnn"])))
+							
 					# copy to www dir.
 					# Do not write directly to www dir to prevent blocking www file.
 					shutil.copyfile(localJsonFileName, wwwJsonFileName)
 
 					#write csv file too
-					csvFile = open(localCsvFileName, "a")
-					lineToWrite = (time.strftime("%b %d %Y %H:%M:%S;") +
-						str(newRow['BeerTemp']) + ';' +
-						str(newRow['BeerSet']) + ';' +
-						str(newRow['BeerAnn']) + ';' +
-						str(newRow['FridgeTemp']) + ';' +
-						str(newRow['FridgeSet']) + ';' +
-						str(newRow['FridgeAnn']) + '\n')
-					csvFile.write(lineToWrite)
-					csvFile.close()
+					with open(localCsvFileName, "a") as csvFile:
+						lineToWrite = (time.strftime("%b %d %Y %H:%M:%S;") +
+							str(newRow['BeerTemp']) + ';' +
+							str(newRow['BeerSet']) + ';' +
+							str(newRow['BeerAnn']) + ';' +
+							str(newRow['FridgeTemp']) + ';' +
+							str(newRow['FridgeSet']) + ';' +
+							str(newRow['FridgeAnn']) + '\n')
+						csvFile.write(lineToWrite)
 					shutil.copyfile(localCsvFileName, wwwCsvFileName)
 
 					# store time of last new data for interval check
