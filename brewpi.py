@@ -128,8 +128,8 @@ def startBeer(beerName):
 	#if a file for today already existed, add suffix
 	if os.path.isfile(dataPath + jsonFileName + '.json'):
 		i = 1
-		while(os.path.isfile(
-				dataPath + jsonFileName + '-' + str(i) + '.json')):
+		while os.path.isfile(
+				dataPath + jsonFileName + '-' + str(i) + '.json'):
 			i = i + 1
 		jsonFileName = jsonFileName + '-' + str(i)
 	localJsonFileName = dataPath + jsonFileName + '.json'
@@ -156,9 +156,9 @@ print >> sys.stderr, (time.strftime("%b %d %Y %H:%M:%S   ") +
 # read settings from Arduino
 ser.write('s')
 time.sleep(1)
-while(1):  # read all lines on serial interface
+while True:  # read all lines on serial interface
 	line = ser.readline()
-	if(line):  # line available?
+	if line:  # line available?
 		if line[0] == 'S':
 			cs = json.loads(line[2:])
 			break
@@ -174,9 +174,9 @@ pprint(cs, sys.stderr)
 # read control constants from Arduino
 ser.write('c')
 time.sleep(1)
-while(1):  # read all lines on serial interface
+while True:  # read all lines on serial interface
 	line = ser.readline()
-	if(line):  # line available?
+	if line:  # line available?
 		if line[0] == 'C':
 			line = line + ser.readline()
 			cc = json.loads(line[2:])
@@ -268,7 +268,7 @@ while True:
 			conn.send(str(cs['beerSetting']))
 		elif messageType == "setBeer":  # new constant beer temperature received
 			newTemp = float(value)
-			if(newTemp > cc['tempSettingMin'] and newTemp < cc['tempSettingMax']):
+			if newTemp > cc['tempSettingMin'] and newTemp < cc['tempSettingMax']:
 				cs['mode'] = 'b'
 				# round to 2 dec, python will otherwise produce 6.999999999
 				cs['beerSetting'] = round(newTemp, 2)
@@ -281,7 +281,7 @@ while True:
 				raise socket.timeout  # go to serial communication to update Arduino
 		elif messageType == "setFridge":  # new constant fridge temperature received
 			newTemp = float(value)
-			if(newTemp > cc['tempSettingMin'] and newTemp < cc['tempSettingMax']):
+			if newTemp > cc['tempSettingMin'] and newTemp < cc['tempSettingMax']:
 				cs['mode'] = 'f'
 				cs['fridgeSetting'] = round(newTemp, 2)
 				ser.write("j{mode:f, beerSetting:" + str(cs['fridgeSetting']))
@@ -309,7 +309,7 @@ while True:
 			conn.send(lcdText)
 		elif messageType == "interval":  # new interval received
 			newInterval = int(value)
-			if(newInterval > 5 and newInterval < 5000):
+			if newInterval > 5 and newInterval < 5000:
 				config['interval'] = float(newInterval)
 				config.write()
 				print >> sys.stderr, (time.strftime("%b %d %Y %H:%M:%S   ") +
@@ -317,7 +317,7 @@ while True:
 									str(newInterval) + " seconds")
 		elif messageType == "name":  # new beer name
 			newName = value
-			if(len(newName) > 3):	 # shorter names are probably invalid
+			if len(newName) > 3:	 # shorter names are probably invalid
 				config['beerName'] = newName
 				startBeer(newName)
 				config.write()
@@ -423,20 +423,19 @@ while True:
 		time.sleep(1)  # give the arduino time to respond
 
 		# if no new data has been received for serialRequestInteval seconds
-		if((time.time() - prevDataTime) >= float(config['interval'])):
+		if (time.time() - prevDataTime) >= float(config['interval']):
 			ser.write("t")  # request new from arduino
 
-		elif((time.time() - prevDataTime) > float(config['interval']) +
-										2 * float(config['interval'])):
+		elif (time.time() - prevDataTime) > float(config['interval']) +	2 * float(config['interval']):
 			#something is wrong: arduino is not responding to data requests
 			print >> sys.stderr, (time.strftime("%b %d %Y %H:%M:%S   ")
 								+ "Error: Arduino is not responding to new data requests")
 
 		time.sleep(1)  # give the arduino time to respond
 
-		while(1):  # read all lines on serial interface
+		while True:  # read all lines on serial interface
 			line = ser.readline()
-			if(line):  # line available?
+			if line:  # line available?
 				if(line[0] == 'T'):
 					# process temperature line
 					newRow = json.loads(line[2:])
@@ -471,21 +470,20 @@ while True:
 
 					# store time of last new data for interval check
 					prevDataTime = time.time()
-				elif(line[0] == 'D'):
+				elif line[0] == 'D':
 					# debug message received
 					print >> sys.stderr, (time.strftime("%b %d %Y %H:%M:%S   ")
 										+ "Arduino debug message: " + line[2:])
-				elif(line[0] == 'L'):
+				elif line[0] == 'L':
 					# lcd content received
 					lcdText = line[2:]
-				elif(line[0] == 'C'):
+				elif line[0] == 'C':
 					# Control constants received
 					cc = json.loads(line[2:])
-
-				elif(line[0] == 'S'):
+				elif line[0] == 'S':
 					# Control settings received
 					cs = json.loads(line[2:])
-				elif(line[0] == 'V'):
+				elif line[0] == 'V':
 					# Control settings received
 					cv = json.loads(line[2:])
 				else:
@@ -496,10 +494,10 @@ while True:
 				break
 
 		# Check for update from temperature profile
-		if(cs['mode'] == 'p'):
+		if cs['mode'] == 'p':
 			newTemp = temperatureProfile.getNewTemp()
-			if(newTemp > cc['tempSettingMin'] and newTemp < cc['tempSettingMax']):
-				if(newTemp != cs['beerSetting']):
+			if newTemp > cc['tempSettingMin'] and newTemp < cc['tempSettingMax']:
+				if newTemp != cs['beerSetting']:
 					# if temperature has to be updated send settings to arduino
 					cs['beerSetting'] = temperatureProfile.getNewTemp()
 					ser.write("j{beerSetting:" + str(cs['beerSetting']))
